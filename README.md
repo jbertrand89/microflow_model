@@ -1,5 +1,17 @@
 # microflow
 
+
+### Installation
+
+pip install torch
+pip install rasterio
+pip install scikit-image
+pip install matplotlib
+pip install tqdm
+pip install opencv-python
+pip install pyyaml
+pip install prox-tv
+
 ### create configs
 python save_train_config.py --config_filename ../../data/configs/train_fault_deform/iterative_geoflownet_separated_weights_intermediatel1_noreg.yaml --amp --dataset_dir <your_directory_containing_fault_deform> --split_dir <your_directory_containing_the_split_files_for_fault_deform> 
 
