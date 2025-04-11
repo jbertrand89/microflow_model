@@ -4,7 +4,7 @@ BASELINE_MODELS:
   RAFT_SMALL: false
 ITERATIVE_MODEL:
   GAMMA: 0.8
-  LOSS: raft
+  LOSS: l1
   MAX_ITERATIONS: 3
   MODEL_NAME: irseparated_GeoFlowNet
   REPEAT_FIRST_ITERATION: false
@@ -36,9 +36,9 @@ TRAINING:
   TRAIN_BATCH_SIZE: 32
   WEIGHT_DECAY: 0.0004
 TRAIN_DATASET:
-  DATASET_DIR: /lustre/fsn1/projects/rech/bae/uwl55jw/datasets/bdd/
+  DATASET_DIR: null 
   DATASET_NAME: faultdeform
-  SPLIT_DIR: /lustre/fsn1/projects/rech/bae//uwl55jw/datasets/splits/bdd_split/
+  SPLIT_DIR: null 
   TRAIN_COUNT: 20000
   TRAIN_IMAGE_SIZE: 256
   TRAIN_SCALING_FACTORS:
