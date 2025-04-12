@@ -46,8 +46,6 @@ def parse_arguments():
 
     # dataset parameters
     parser.add_argument('--dataset_name', default='faultdeform', help='dataset name')
-    parser.add_argument('--dataset_dir', help='path to dataset dir')
-    parser.add_argument('--split_dir', type=str, help='directory containing the dataset splits')
     parser.add_argument('--train_count', type=int, default=20000, help='number of train examples')
     parser.add_argument('--train_scaling_factors', nargs='+', default=[0, 1, 2], help="train scaling factors")
     parser.add_argument('--val_count', type=int, default=5000, help='number of val examples')
@@ -113,8 +111,6 @@ def save_config(config_filename, args):
 
     train_dataset_parameters = {
         "DATASET_NAME": args.dataset_name,
-        "DATASET_DIR": args.dataset_dir,
-        "SPLIT_DIR": args.split_dir,
         "TRAIN_IMAGE_SIZE": args.train_image_size,
         "TRAIN_COUNT": args.train_count,
         "VAL_COUNT": args.val_count,

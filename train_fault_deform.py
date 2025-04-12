@@ -31,7 +31,9 @@ def parse_args():
     parser.add_argument('--train_config_name', default='data/configs/train/microflow.yaml')
     parser.add_argument('--seed', default=1, type=int, help='Seed used for the random number generators')
     
-    # saving parameters
+    # directories parameters
+    parser.add_argument('--split_dir', type=str, help='directory containing the dataset splits')
+    parser.add_argument('--dataset_dir', help='path to dataset dir')
     parser.add_argument('--save_offline', action='store_true', help='If true, save offline logs to be used for wandb')
     parser.add_argument('--offline_dir', type=str, default="", help='Directory where to save the offline logs')
     parser.add_argument('--checkpoints_dir', default='/gpfswork/rech/nrl/ubt63as/subpixel_sat_ml/results/',
