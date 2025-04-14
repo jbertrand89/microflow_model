@@ -7,7 +7,7 @@ import random
 
 
 from src.models.model_loader import load_model
-from src.training_inference.evaluate import evaluate_inference
+from src.training_inference.evaluate import evaluate_inference_from_estimates
 from src.dataloaders.data_loader import get_inference_dataloader
 
 from src.metrics_and_losses.photometric_metrics import realEPE
@@ -44,6 +44,8 @@ def parse_args():
     parser.add_argument('--split_count', type=int, default=10000, help='number of split examples')   
     parser.add_argument('--split_scaling_factors',  nargs='+', default=[0, 1, 2, 3], help="scaling factors")
     parser.add_argument('--split_dir', type=str, help='directory containing the dataset splits')
+    parser.add_argument('--estimation_root_dir', type=str, help='directory containing the estimates')
+    parser.add_argument('--estimate_model_name', type=str, help='name of the model used to compute the estimates')
     parser.add_argument('--dataset_dir', help='path to dataset dir') 
     parser.add_argument('--dataset_name', default='faultdeform', help='dataset name')
     parser.add_argument('--image_size', default=512, type=int, help='Image size')  
@@ -79,9 +81,6 @@ def run_inference(args):
     # Define device
     device = torch.device('cuda')
 
-    # Load models
-    optical_flow_model = load_model(args, device)
-
     # Get dataloaders
     loader, frame_names, crs_meta_datas, transform_meta_datas = get_inference_dataloader(args)
 
@@ -90,10 +89,9 @@ def run_inference(args):
     smoothness_metrics = [L2Smoothness()]
 
     t_start = time.time()   
-    evaluate_inference(
+    evaluate_inference_from_estimates(
         args=args,
         device=device,
-        model=optical_flow_model,
         loader=loader,
         photometric_metrics=photometric_metrics,
         smoothness_metrics=smoothness_metrics,

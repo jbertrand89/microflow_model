@@ -181,7 +181,89 @@ def evaluate_inference(
         regularization_name = f"_{args.penalty_function}_l{args.reg_lambda}_i{args.reg_iterations}" if args.regularization else ""
 
         metrics = compute_all_metrics(
-            args, model, epe_errors, smoothness_errors, smoothness_errors_near_fault, 
+            args, model.max_iterations, epe_errors, smoothness_errors, smoothness_errors_near_fault, 
+            smoothness_errors_away_fault, epe_errors_near_fault, epe_errors_away_fault
+            )
+
+        save_metrics(args, model_name, scaling_factor_name, regularization_name, metrics)
+
+
+def evaluate_inference_from_estimates(
+        args, device, loader=None, photometric_metrics=None, smoothness_metrics=None,
+        frame_names=None, crs_meta_datas=None, transform_meta_datas=None
+):
+    """
+    Evaluate the model using photometric (EPE) and smoothness metrics.
+    """
+    val_dataset_count = len(loader.dataset)
+    val_batches_count = val_dataset_count / args.batch_size
+
+    epe_errors = [[0 for _ in photometric_metrics] for _ in range(1)]
+    epe_errors_near_fault = [[0 for _ in photometric_metrics] for _ in range(1)]  #  Not used for now
+    epe_errors_away_fault = [[0 for _ in photometric_metrics] for _ in range(1)]  #  Not used for now
+    smoothness_errors = [[0 for _ in range(2*len(smoothness_metrics))] for _ in range(1)]
+    smoothness_errors_near_fault = [[0 for _ in range(2*len(smoothness_metrics))] for _ in range(1)]
+    smoothness_errors_away_fault = [[0 for _ in range(2*len(smoothness_metrics))] for _ in range(1)]
+
+    for _, batchv in enumerate(tqdm(loader)):
+        optical_flow_predictions = batchv['estimated_dm'].to(device, non_blocking=args.non_blocking)
+        batch_target = batchv['target_dm'].to(device, non_blocking=args.non_blocking) if 'target_dm' in batchv else None
+        batch_near_fault = batchv['fault_boundary'].to(device, non_blocking=args.non_blocking) if args.fault_boundary_dir is not None else None
+
+        if args.save_metrics:
+            if batch_target is None:
+                raise error("To compute the metrics, you need to define the groundtruth / target flow")
+                    
+        # The metrics are computed on the cropped image to avoid border effects with the cosi-corr baseline
+        crop_slice = slice(args.eval_crop_size, -args.eval_crop_size or None)
+        batch_target_cropped = batch_target[:, :, crop_slice, crop_slice]
+
+        for metric_id, metric in enumerate(photometric_metrics):
+            for iteration in range(1):
+                iteration_prediction = optical_flow_predictions
+                iteration_prediction_cropped = iteration_prediction[:, :, crop_slice, crop_slice]
+                error = metric(iteration_prediction_cropped, batch_target_cropped)
+                epe_errors[iteration][metric_id] += error.item() / val_batches_count
+
+        if args.near_fault_only:
+            batch_near_faults_cropped = batch_near_fault[:, :, crop_slice, crop_slice]
+
+            for metric_id, metric in enumerate(smoothness_metrics):
+                for iteration in range(1):
+                    iteration_prediction = optical_flow_predictions
+                    iteration_prediction_cropped = iteration_prediction[:, :, crop_slice, crop_slice]
+
+                    # Smoothness errors for prediction 
+                    update_errors(
+                        metric=metric,
+                        prediction=iteration_prediction_cropped,
+                        target=batch_near_faults_cropped,
+                        errors=smoothness_errors[iteration],
+                        errors_near_fault=smoothness_errors_near_fault[iteration],
+                        errors_away_fault=smoothness_errors_away_fault[iteration],
+                        index=2 * metric_id,
+                        val_dataset_count=val_batches_count
+                    )
+
+                    # Smoothness errors for ground truth / reference
+                    update_errors(
+                        metric=metric,
+                        prediction=batch_target_cropped,
+                        target=batch_near_faults_cropped,
+                        errors=smoothness_errors[iteration],
+                        errors_near_fault=smoothness_errors_near_fault[iteration],
+                        errors_away_fault=smoothness_errors_away_fault[iteration],
+                        index=2 * metric_id + 1,
+                        val_dataset_count=val_batches_count
+                    )
+
+    if args.save_metrics:
+        model_name = args.estimate_model_name
+        scaling_factor_name= "_".join(args.split_scaling_factors)
+        regularization_name = f"_{args.penalty_function}_l{args.reg_lambda}_i{args.reg_iterations}" if args.regularization else ""
+
+        metrics = compute_all_metrics(
+            args, 1, epe_errors, smoothness_errors, smoothness_errors_near_fault, 
             smoothness_errors_away_fault, epe_errors_near_fault, epe_errors_away_fault
             )
 
@@ -282,23 +364,23 @@ def update_errors(metric, prediction, target, errors, errors_near_fault, errors_
     errors_away_fault[index] += error_away_fault.item() / val_dataset_count
 
 
-def compute_all_metrics(args, model, epe_errors, smoothness_errors, smoothness_errors_near_fault, smoothness_errors_away_fault, epe_errors_near_fault, epe_errors_away_fault):
+def compute_all_metrics(args, max_iterations, epe_errors, smoothness_errors, smoothness_errors_near_fault, smoothness_errors_away_fault, epe_errors_near_fault, epe_errors_away_fault):
     """
     Compute evaluation metrics (EPE and smoothness) for global, near_fault and non-near_fault regions.
     """
-    epe = compute_metrics(epe_errors, model.max_iterations, 0)
+    epe = compute_metrics(epe_errors, max_iterations, 0)
 
     if args.near_fault_only:
-        epe_near_fault = compute_metrics(epe_errors_near_fault, model.max_iterations, 0)
-        epe_away_fault = compute_metrics(epe_errors_away_fault, model.max_iterations, 0)
+        epe_near_fault = compute_metrics(epe_errors_near_fault, max_iterations, 0)
+        epe_away_fault = compute_metrics(epe_errors_away_fault, max_iterations, 0)
 
-        l2 = compute_metrics(smoothness_errors, model.max_iterations, 0)
-        l2_near_fault = compute_metrics(smoothness_errors_near_fault, model.max_iterations, 0)
-        l2_away_fault = compute_metrics(smoothness_errors_away_fault, model.max_iterations, 0)
+        l2 = compute_metrics(smoothness_errors, max_iterations, 0)
+        l2_near_fault = compute_metrics(smoothness_errors_near_fault, max_iterations, 0)
+        l2_away_fault = compute_metrics(smoothness_errors_away_fault, max_iterations, 0)
 
-        l2_gt = compute_metrics(smoothness_errors, model.max_iterations, 1)
-        l2_gt_near_fault = compute_metrics(smoothness_errors_near_fault, model.max_iterations, 1)
-        l2_gt_away_fault = compute_metrics(smoothness_errors_away_fault, model.max_iterations, 1)
+        l2_gt = compute_metrics(smoothness_errors, max_iterations, 1)
+        l2_gt_near_fault = compute_metrics(smoothness_errors_near_fault, max_iterations, 1)
+        l2_gt_away_fault = compute_metrics(smoothness_errors_away_fault, max_iterations, 1)
     else:
         # Initialize all metrics to None when not computing near_fault metrics
         epe_near_fault = epe_away_fault = None
@@ -330,6 +412,7 @@ def save_metrics(args, model_name, scaling_factor_name, regularization_name, met
     if args.near_fault_only:
         additional_columns = [epe_near_fault, epe_away_fault, l2, l2_near_fault, l2_away_fault, l2_gt, l2_gt_near_fault, l2_gt_away_fault]
     columns = base_columns + additional_columns
+    print(f"columns {columns}")
 
     # save metric file
     metric_dir = os.path.dirname(args.metric_filename)
