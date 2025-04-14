@@ -14,6 +14,8 @@ pip install torch, rasterio, scikit-image, matplotlib, tqdm, opencv-python, pyya
 pip install prox-tv
 ```
 
+FYI: if needed, install lapack before prox-tv (for ex. with  `sudo apt-get install liblapacke-dev` or `sudo yum install lapacke lapacke-devel`)
+
 ## Training on the semi-synthetic dataset FaultDeform
 
 ### Downloading the FaultDeform dataset
@@ -87,7 +89,7 @@ local_dir = snapshot_download(repo_id="zjuzju/microflow_models")
 
 or download each model separately using wget
 ```
-wget https://huggingface.co/zjuzju/microflow_models/resolve/main/irseparated_geoflownet_intermediatel1/irseparated_GeoFlowNet_intermediatel1_0.8_sf012_e40.pt?download=true
+wget https://huggingface.co/zjuzju/microflow_models/resolve/main/irseparated_geoflownet_intermediatel1/irseparated_GeoFlowNet_intermediatel1_0.8_sf012_e40.pt
 ```
 
 ## Inference of FaultDeform
@@ -133,7 +135,7 @@ Real_example_root_dir
 
 ```
 python inference_real_examples.py \
---config_filename <your_filename> \
+--config_name <your_filename> \
 --pretrained_model_filename <your_pretrained_model> \
 --dataset_dir <first_example_dir> \
 --save_dir <your_saving_directory> \
@@ -142,13 +144,14 @@ python inference_real_examples.py \
 ```
 
 and specify 
+- `config_name`: the config file name without the yaml extention, which must be located in `data/configs/inference_real_examples` (ex. --config_name microflow)
 - `pretrained_model_filename`: the path for your model (.pt)
-- `dataset_dir`: the directory of your current example (for example, Real_examples/first_example)
+- `dataset_dir`: the directory of your current example (for example, Real_examples/first_example containing 'xxx_pre.tif' and 'xxx_post.tif')
 - `save_dir`: directory where to save your estimates
 - `window_size`: sliding window size, recommended for 1024
 - `window_overlap`: overlap for the sliding window, (leading to a stride of window_size - 2 * window_overlap)
 
-Note that your config must be located in `data/configs/inference_real_examples`.
+Example: ```python inference_real_examples.py --config_name microflow --pretrained_model_filename pretrained_models/irseparated_GeoFlowNet_intermediatel1_0.8_sf012_e40.pt --save_dir results/ --dataset_dir Real_examples/example/ ```
 
 
 ## Citation

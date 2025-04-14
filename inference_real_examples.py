@@ -54,7 +54,9 @@ def run_inference(args):
 
     # Define device
     device = torch.device('cuda')
-
+    
+    print(args)
+    
     # Load models
     optical_flow_model = load_model(args, device)
 
