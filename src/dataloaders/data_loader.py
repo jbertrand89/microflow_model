@@ -1,10 +1,10 @@
 import os
 import torch
 from src.dataloaders.datasets.fault_deform_dataset import FaultDeformDataset
-from src.dataloaders.datasets.ridgecrest_dataset import  RidgeCrestDataset
+from src.dataloaders.datasets.prediction_dataset import PredictionDataset
 from src.dataloaders.datasets.real_example_dataset import RealExampleDataset
 from src.dataloaders.datasets.real_example_large_dataset import RealExampleLargeDataset
-from src.dataloaders.transform import get_inference_transforms, get_train_transforms
+from src.dataloaders.transform import get_inference_transforms, get_train_transforms, get_inference_from_estimates_transforms
 
 
 def get_inference_dataloader(args):
@@ -25,18 +25,6 @@ def get_inference_dataloader(args):
             fault_boundary_disk=args.fault_boundary_disk
         )
         crop_names, crs_meta_datas, transform_meta_datas = None, None, None
-    elif args.dataset_name.lower() == "ridgecrest":
-        crop_names = [f for f in os.listdir(args.dataset_dir) if f.startswith("corr_ads80_01") or f.startswith("corr_landsat8_01")]
-        inference_set = RidgeCrestDataset(
-            args.dataset_dir,
-            transform=inference_transform,
-            ew_template="ew_pxl.tif",  # it corresponds to the COSI-CoRR baseline in the EW direction
-            ns_template="ns_pxl.tif",  # it corresponds to the COSI-CoRR baseline in the NS direction
-            pre_template="pre.tif",
-            post_template="post.tif",
-            crop_names=crop_names
-        )
-        crs_meta_datas, transform_meta_datas = inference_set.get_tiff_metadata()
     elif args.dataset_name.lower() == "real_examples":
         crop_names = [f for f in os.listdir(args.dataset_dir) if f.startswith("corr_landsat8_01")]
         # crop_names = [f for f in os.listdir(args.dataset_dir) if f.startswith("corr_ads80_01") or f.startswith("corr_landsat8_01")]
@@ -50,6 +38,20 @@ def get_inference_dataloader(args):
         # the metadata are loaded outside of the dataloader because they are at a rasterio format, 
         # not compatible with tensors, numpy arrays, numbers, dicts or lists
         crs_meta_datas, transform_meta_datas = inference_set.get_tiff_metadata()  
+    elif args.dataset_name.lower() == "estimate_faultdeform":
+        inference_transform = get_inference_from_estimates_transforms(args.image_size)
+        frame_ids = load_frame_ids(args, split_name=args.split_name, split_start_idx=args.split_start_idx, split_count=args.split_count)
+        inference_frame_ids = [int(frame_id) for frame_id in frame_ids]
+        inference_set = PredictionDataset(
+            frame_ids=inference_frame_ids, 
+            fault_deform_root_dir=os.path.join(args.dataset_dir, args.split_name), 
+            estimation_root_dir=args.estimation_root_dir, 
+            transform=inference_transform, 
+            scaling_factors=args.split_scaling_factors,
+            fault_boundary_dir=args.fault_boundary_dir,
+            fault_boundary_disk=args.fault_boundary_disk
+        )
+        crop_names, crs_meta_datas, transform_meta_datas = None, None, None
     else:
         raise ValueError(f"Dataset {args.dataset_name} not supported")
 

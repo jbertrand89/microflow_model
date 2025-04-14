@@ -72,7 +72,6 @@ class RealExampleDataset(Dataset):
 
         pre_post_tensor = self.load_prepost_tensor(pre_filename, post_filename)
         print(f"pre_post_tensor {pre_post_tensor.shape}")
-        raise Exception("juju")
         
         sample = {
             'pre_post_image': pre_post_tensor,

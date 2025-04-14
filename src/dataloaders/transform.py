@@ -32,6 +32,12 @@ def get_inference_transforms(image_size):
     ])
 
 
+def get_inference_from_estimates_transforms(image_size):
+    return Compose([
+        CenterCrop(image_size)
+    ])
+
+
 # -------------------------------------
 # Transform classes
 # ------------------------------------- 
@@ -143,21 +149,17 @@ class CenterCrop(object):
         self.image_size = image_size    
     
     def __call__(self, sample):
-        image = sample['pre_post_image']
-        _, h, w = image.shape
-        th, tw = self.image_size, self.image_size
-
         result_sample = {}
-        if h <= th:
-            for key in sample:
+        for key in sample:
+            image = sample[key]
+            _, h, w = image.shape
+            
+            if h <= self.image_size:
                 result_sample[key] = sample[key]
-        else:
-            x = int(round((w - tw) / 2.0))
-            y = int(round((h - th) / 2.0))
-
-            result_sample = {}
-            for key in sample:
-                result_sample[key] = sample[key][:, y:y + th, x:x + tw]
+            else:
+                x = int(round((w - self.image_size) / 2.0))
+                y = int(round((h - self.image_size) / 2.0))
+                result_sample[key] = sample[key][:, y:y + self.image_size, x:x + self.image_size]
         return result_sample
 
 
