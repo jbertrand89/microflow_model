@@ -40,7 +40,6 @@ class RealExampleLargeDataset(Dataset):
         # Set image size
         self.height = pre_post.shape[-2]
         self.width = pre_post.shape[-1]
-        print(f"in load h={self.height} w={self.width}")
 
         # Extract the patches in memory
         self.pre_posts, self.x_positions, self.y_positions = self.extract_patches(pre_post)

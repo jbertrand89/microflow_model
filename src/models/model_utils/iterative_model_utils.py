@@ -35,7 +35,7 @@ def compute_regularization(predicted_flow, args, ptv):
     denoised_predicted = predicted_flow.clone()
     predicted_cpu = predicted_flow.detach().cpu().numpy()       
 
-    b, c, h, _ = denoised_predicted.shape
+    b, c, _, _ = denoised_predicted.shape
     for i_batch in range(b):
         for i_channel in range(c):
             denoised_cpu = predicted_cpu[i_batch, i_channel].copy() 
@@ -47,11 +47,8 @@ def compute_regularization(predicted_flow, args, ptv):
                     # https://github.com/albarji/proxTV/blob/master/src/TV2DWopt.cpp
                     
                     grad_cpu = compute_gradients(denoised_predicted).detach().cpu().numpy()
-                    print(f"grad_cpu {grad_cpu.shape}")
                     w_col, w_row = create_weights_from_inverse_grads(
                         grad_cpu[i_batch, 0], ltv_lambda=args.reg_lambda)
-                    print(f"w_col {w_col.shape}")
-                    print(f"w_row {w_row.shape}")
 
                     denoised_cpu = ptv.tv1w_2d(
                         denoised_cpu, w_col, w_row, max_iters=args.reg_2d_max_iter, n_threads=args.reg_threads)  
