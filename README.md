@@ -1,9 +1,8 @@
 # MicroFlow 
 
-[//]: # ([[arXiv]&#40;&#41; ] [[project page]&#40;&#41;])
+[[arXiv](https://jbertrand89.github.io/microflow/) ] [[project page](https://jbertrand89.github.io/microflow/)]
 
 This repository contains official code for MicroFlow: Domain-Specific Optical Flow for Ground Deformation Estimation in Seismic Events.
-
 
 ## Installation
 You can setup the environment either by loading the `requirements.txt` file or by following:
@@ -15,14 +14,14 @@ pip install torch, rasterio, scikit-image, matplotlib, tqdm, opencv-python, pyya
 pip install prox-tv
 ```
 
-## Datasets
+## Training on the semi-synthetic dataset FaultDeform
 
-### FaultDeform
-The FaultDeform dataset is a synthetic dataset that can be downloaded [here](https://henghuiding.github.io/MOSE/).
-It follows the file structure:
+### Downloading the FaultDeform dataset
+The FaultDeform dataset is a synthetic dataset that can be downloaded [here](https://entrepot.recherche.data.gouv.fr/dataset.xhtml?persistentId=doi:10.57745/G02ZXZ&version=1.0).
+You can download it, it will follow the following file structure:
 
 ```
-FaultDeform Directory
+FaultDeform_root_dir
 ├── train
 │   │── 000000_0_sample.npy.npz
 │   │── 000000_1_sample.npy.npz
@@ -43,21 +42,7 @@ FaultDeform Directory
     └── ...
 ```
 
-### Real Examples
-
-
-```
-Real_examples
-├── first_example
-│   │── <first_example_template>_pre.tif
-│   └── <first_example_template>_post.tif
-├── second_example
-│   │── <second_example_template>_pre.tif
-│   └── <second_example_template>_post.tif
-└── ...
-```
-
-## Training on the semi-synthetic dataset FaultDeform
+### Training Microflow
 
 To train MicroFlow, run
 ```
@@ -66,13 +51,13 @@ python -u train_fault_deform.py \
 --checkpoints_dir <your_checkpoint_dir> \
 --offline_dir <your_offline_dir> \
 --save_offline \
---dataset_dir <your_directory_containing_fault_deform> \
+--dataset_dir <FaultDeform_root_dir> \
 --split_dir <your_directory_containing_the_split_files_for_fault_deform> 
 --seed 1
 ```
 using the pre-saved config located in `data/configs/train_fault/deform`
 and setting 
-- `--checkpoint_dir`: the directory for saving the checkpoints
+- `checkpoint_dir`: the directory for saving the checkpoints
 - `offline_dir`: the directory for saving the wandb offline logs if you setup `--save_offline`
 - `dataset_dir`: the root directory of Fault Deform
 - `split_dir`: the directory containing the split files
@@ -91,6 +76,20 @@ python src/configs/save_train_config.py \
 --split_dir <your_directory_containing_the_split_files_for_fault_deform> 
 ```
 
+### Pre-trained models
+
+You can find the models trained for reproducing the paper on [huggingface](https://huggingface.co/zjuzju/microflow_models). 
+You can either download the full repository, by running the following python code
+```
+from huggingface_hub import snapshot_download
+local_dir = snapshot_download(repo_id="zjuzju/microflow_models")
+```
+
+or download each model separately using wget
+```
+wget https://huggingface.co/zjuzju/microflow_models/resolve/main/irseparated_geoflownet_intermediatel1/irseparated_GeoFlowNet_intermediatel1_0.8_sf012_e40.pt?download=true
+```
+
 ## Inference of FaultDeform
 
 Run the following command
@@ -101,7 +100,7 @@ python inference_fault_deform.py \
 --metric_filename <your_metric_filename> \
 --save_metrics \
 --dataset_name faultdeform \
---dataset_dir <your_directory_containing_faultdeform> \
+--dataset_dir <FaultDeform_root_dir> \
 --split_dir <your_directory_containing_the_split_files> \
 --split_scaling_factors 1
 ```
@@ -116,11 +115,27 @@ and specify
 Note that your config must be located in `data/configs/train_fault_deform`.
 
 ## Inference for real examples
+
+### Real Examples
+You can evaluate our model on any pair of real-world examples, following the file structure
+```
+Real_example_root_dir
+├── first_example_dir
+│   │── <first_example_template>_pre.tif
+│   └── <first_example_template>_post.tif
+├── second_example_dir
+│   │── <second_example_template>_pre.tif
+│   └── <second_example_template>_post.tif
+└── ...
+```
+
+### Inference
+
 ```
 python inference_real_examples.py \
 --config_filename <your_filename> \
 --pretrained_model_filename <your_pretrained_model> \
---dataset_dir <your_directory_with_pre_post_files> \
+--dataset_dir <first_example_dir> \
 --save_dir <your_saving_directory> \
 --window_size 256 \
 --window_overlap 64
