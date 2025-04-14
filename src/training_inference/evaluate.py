@@ -412,7 +412,6 @@ def save_metrics(args, model_name, scaling_factor_name, regularization_name, met
     if args.near_fault_only:
         additional_columns = [epe_near_fault, epe_away_fault, l2, l2_near_fault, l2_away_fault, l2_gt, l2_gt_near_fault, l2_gt_away_fault]
     columns = base_columns + additional_columns
-    print(f"columns {columns}")
 
     # save metric file
     metric_dir = os.path.dirname(args.metric_filename)
