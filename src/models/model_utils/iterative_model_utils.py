@@ -9,18 +9,19 @@ def normalize_image(image):
     return (image - image_mean) / image_std
 
 
-def create_weights_from_inverse_grads(N, grad_predictions, ltv_lambda=0, epsilon=1e-8):
+def create_weights_from_inverse_grads(grad_predictions, ltv_lambda=0, epsilon=1e-8):
     """
     Create weights from inverse gradients for the ltv regularization
     """
     crop_size=100  # crop to avoid border effects
+    h, w = grad_predictions.shape
     minimum = np.min(grad_predictions[crop_size:-crop_size, crop_size:-crop_size]) + epsilon  
     maximum = np.max(grad_predictions[crop_size:-crop_size, crop_size:-crop_size])
     grad_predictions = np.where(grad_predictions < minimum, minimum, grad_predictions)
 
     square = ltv_lambda * maximum / grad_predictions
-    w_col = square[:N - 1, :N]
-    w_row = square[:N, :N - 1]
+    w_col = square[:h - 1, :w]
+    w_row = square[:h, :w - 1]
     return w_col, w_row
 
 
@@ -46,8 +47,11 @@ def compute_regularization(predicted_flow, args, ptv):
                     # https://github.com/albarji/proxTV/blob/master/src/TV2DWopt.cpp
                     
                     grad_cpu = compute_gradients(denoised_predicted).detach().cpu().numpy()
+                    print(f"grad_cpu {grad_cpu.shape}")
                     w_col, w_row = create_weights_from_inverse_grads(
-                        h, grad_cpu[i_batch, 0], ltv_lambda=args.reg_lambda)
+                        grad_cpu[i_batch, 0], ltv_lambda=args.reg_lambda)
+                    print(f"w_col {w_col.shape}")
+                    print(f"w_row {w_row.shape}")
 
                     denoised_cpu = ptv.tv1w_2d(
                         denoised_cpu, w_col, w_row, max_iters=args.reg_2d_max_iter, n_threads=args.reg_threads)  
