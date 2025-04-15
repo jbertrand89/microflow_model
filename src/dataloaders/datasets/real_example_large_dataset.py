@@ -57,14 +57,19 @@ class RealExampleLargeDataset(Dataset):
       
         return pre_filename, post_filename
 
+    def load_and_fill(self, filename):
+        """ Fill nan values with 0 because it is computationnally expensive to do a nearest ND interpolation for large images.
+        If needed otherwise, best practice would be to feed input images without nan values (or preprocess it)
+        """
+        image = open_tiff(filename)
+        array = get_tiff_band(image, 1)
+        array[np.isnan(array)] = 0
+        return torch.tensor(array)
+
     def load_prepost_tensor(self, pre_filename, post_filename):
         """ Loads prepost tensor """
-        pre_img = open_tiff(pre_filename)
-        pre_tensor = torch.tensor(get_tiff_band(pre_img, 1))
-        
-        post_img = open_tiff(post_filename)
-        post_tensor = torch.tensor(get_tiff_band(post_img, 1))
-        
+        pre_tensor = self.load_and_fill(pre_filename)
+        post_tensor = self.load_and_fill(post_filename)
         return torch.stack([pre_tensor, post_tensor])
 
     def __len__(self):
