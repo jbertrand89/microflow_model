@@ -59,5 +59,17 @@ def compute_regularization(predicted_flow, args, ptv):
                     denoised_cpu = ptv.tv1_2d(
                         denoised_cpu, args.reg_lambda, n_threads=args.reg_threads, max_iters=args.reg_2d_max_iter)  
                 denoised_predicted[i_batch, i_channel] = torch.tensor(denoised_cpu)
+            elif args.penalty_function == "l2":
+                for iii in range(args.reg_iterations): 
+                    # max_iters is the number of alternances between processing columns and processing rows (different from the number of iterations k in the paper)
+                    denoised_cpu = ptv.tvp_2d(
+                        denoised_cpu, 
+                        w_col=args.reg_lambda, 
+                        w_row=args.reg_lambda,
+                        p_col=2,
+                        p_row=2,
+                        n_threads=args.reg_threads, 
+                        max_iters=args.reg_2d_max_iter)  
+                denoised_predicted[i_batch, i_channel] = torch.tensor(denoised_cpu)
 
     return denoised_predicted
