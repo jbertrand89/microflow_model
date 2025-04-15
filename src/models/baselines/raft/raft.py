@@ -92,7 +92,7 @@ class RAFT(nn.Module):
         return up_flow.reshape(N, 2, 8*H, 8*W)
 
     def forward(
-            self, x, args=None, flow_init=None, upsample=True, test_mode=False, save=False, crs_meta_data=None,
+            self, x, ptv=None, args=None, flow_init=None, upsample=True, test_mode=False, save=False, crs_meta_data=None,
             transform_meta_data=None, frame_labels=None
     ):
         if self.args.model_name == "raft":
