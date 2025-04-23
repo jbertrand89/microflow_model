@@ -1,6 +1,6 @@
 # MicroFlow 
 
-[[arXiv](https://jbertrand89.github.io/microflow/) ] [[project page](https://jbertrand89.github.io/microflow/)]
+[[arXiv](https://arxiv.org/abs/2504.13452) ] [[project page](https://jbertrand89.github.io/microflow/)]
 
 This repository contains official code for MicroFlow: Domain-Specific Optical Flow for Ground Deformation Estimation in Seismic Events.
 
