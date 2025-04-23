@@ -40,7 +40,7 @@ def get_inference_dataloader(args):
         crs_meta_datas, transform_meta_datas = inference_set.get_tiff_metadata()  
     elif args.dataset_name.lower() == "estimate_faultdeform":
         inference_transform = get_inference_from_estimates_transforms(args.image_size)
-        frame_ids = load_frame_ids(args, split_name=args.split_name, split_start_idx=args.split_start_idx, split_count=args.split_count)
+        frame_ids = [f.split("_")[0] for f in os.listdir(args.estimation_root_dir)] 
         inference_frame_ids = [int(frame_id) for frame_id in frame_ids]
         inference_set = PredictionDataset(
             frame_ids=inference_frame_ids, 
