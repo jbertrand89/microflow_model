@@ -63,7 +63,7 @@ def parse_args():
 
     namespace, _ = parser.parse_known_args()
 
-    config_filename = os.path.join("data/configs/train_fault_deform/", f'{namespace.train_config_name}.yaml')
+    config_filename = os.path.join("data/configs/train_fault_deform/", f'{namespace.train_config_name.lower()}.yaml')
     parser.add_argument('--config', action=YamlConfigAction, default=[config_filename])
 
     return parser.parse_args()

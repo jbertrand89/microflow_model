@@ -39,7 +39,7 @@ def parse_args():
     parser.add_argument('-b', '--batch-size', default=1, type=int, help='batch size for estimating on the sliding windows')  
     namespace, _ = parser.parse_known_args()
 
-    config_filename = os.path.join("data/configs/inference_real_examples/", f'{namespace.config_name}.yaml')
+    config_filename = os.path.join("data/configs/inference_real_examples/", f'{namespace.config_name.lower()}.yaml')
     parser.add_argument('--config', action=YamlConfigAction, default=[config_filename])
 
     return parser.parse_args()
