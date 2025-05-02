@@ -59,7 +59,7 @@ def parse_args():
     parser.add_argument('--eval_crop_size', type=int, default=0, help='when > 0 it is mainly for aligning with cosi-corr')
     parser.add_argument('--save_images', action='store_true', help='')
     parser.add_argument('--metric_filename', default=None, help="filename where to save the metric results") 
-    parser.add_argument('--save_dir', default=None, help="dir where to save the metrics")
+    parser.add_argument('--save_dir', default=None, help="dir where to save the estimated images")
 
     namespace, _ = parser.parse_known_args()
 

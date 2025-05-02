@@ -102,11 +102,12 @@ def get_real_examples_dataloader(args):
 
 
 def get_training_dataloaders(args):
-    train_frame_ids = load_frame_ids(args, split_name="train", split_start_idx=0, split_count=args.train_count)
+    train_split_name = "train"
+    train_frame_ids = load_frame_ids(args, split_name=train_split_name, split_start_idx=0, split_count=args.train_count)
     train_transform = get_train_transforms(args.train_image_size)
     train_set = FaultDeformDataset(
         frame_ids=train_frame_ids,
-        root_dir=os.path.join(args.dataset_dir, "train"),
+        root_dir=os.path.join(args.dataset_dir, train_split_name),
         transform=train_transform,
         scaling_factors=args.train_scaling_factors,
     )
@@ -120,11 +121,12 @@ def get_training_dataloaders(args):
         prefetch_factor=args.prefetch_factor,
         drop_last=args.drop_last)
 
-    val_frame_ids = load_frame_ids(args, split_name="val", split_start_idx=0, split_count=args.val_count)
+    val_split_name = "validation"
+    val_frame_ids = load_frame_ids(args, split_name=val_split_name, split_start_idx=0, split_count=args.val_count)
     validation_transform = get_inference_transforms(args.train_image_size)
     val_set = FaultDeformDataset(
         frame_ids=val_frame_ids,
-        root_dir=os.path.join(args.dataset_dir, "validation"),
+        root_dir=os.path.join(args.dataset_dir, val_split_name),
         transform=validation_transform,
         scaling_factors=args.val_scaling_factors,
     )
