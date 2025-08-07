@@ -33,6 +33,7 @@ def parse_args():
     parser.add_argument('--pretrained_model_filename', help='Filename containing the pretrained weights associated witht the config')  
     parser.add_argument('--dataset_dir', help='path to the dir containing the real examples')  
     parser.add_argument('--save_dir', default=None, help="dir where to save the flow estimates")
+    parser.add_argument('--dataset_name', help='path to the dir containing the real examples')
     
     parser.add_argument('--window_size', default=1024, type=int, help='Sliding window size (useful when the image is large)')  
     parser.add_argument('--window_overlap', default=0, type=int, help='Overlap between the sliding windows (stride of window_size - 2*window_overlap)')  

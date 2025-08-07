@@ -7,7 +7,7 @@ from src.models.backbones import (
     get_GeoFlowNet_model,
     get_GeoFlowNetC_model,
     get_GeoFlowNetCNoCorr_model,
-    get_GeoFlowNetNoUp_model,
+    get_ResNetUpsampling_model,
 )
 
 MODEL_MAPPING = {
@@ -18,7 +18,6 @@ MODEL_MAPPING = {
     "geoflownet": get_GeoFlowNet_model,
     "geoflownetc": get_GeoFlowNetC_model,
     "geoflownetcnocorr": get_GeoFlowNetCNoCorr_model,
-    "geoflownetnoup": get_GeoFlowNetNoUp_model,
 }
 
 def get_backbone(backbone_name, batch_norm):
@@ -33,14 +32,20 @@ def get_backbone(backbone_name, batch_norm):
         
     return model_fn(batch_norm)
 
-def load_backbone(backbone_name, use_batch_norm, device, pretrained_weights_path = None):
+def load_backbone(backbone_name, use_batch_norm, device, pretrained_weights_path = None, args = None):
     """
     Load a backbone model and optionally initialize it with pre-trained weights.
     """
-    model = get_backbone(backbone_name, use_batch_norm).to(device)
+
+    if backbone_name.lower().startswith("resnetup"):
+        model = get_ResNetUpsampling_model(args)
+        model.to(device)
+    else:
+        model = get_backbone(backbone_name, use_batch_norm).to(device)
     
     if pretrained_weights_path:
         model.load_state_dict(torch.load(pretrained_weights_path)["model_state_dict"])
+
         
     print(f"Model name: {backbone_name}")
     print(f"Number of parameters: {sum(p.numel() for p in model.parameters()):,}")

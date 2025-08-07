@@ -305,11 +305,12 @@ def evaluate_inference_large_image(
 
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=args.amp, dtype=torch.float16):
-                optical_flow_predictions = model.forward(
+                optical_flow_predictions = model(
                     input_model,
                     ptv=ptv,
-                    args=args, 
-                    save=False
+                    args=args,
+                    save=False,
+                    test_mode=True
                 )
         last_iteration_prediction = optical_flow_predictions[-1]
 
@@ -333,13 +334,15 @@ def evaluate_inference_large_image(
     os.makedirs(args.save_dir, exist_ok=True)
     full_optical_flow[1] *= -1  # Qgis convention for the NS direction
 
-    ew_filename = f"{image_pair_name}_microflow_ew.tif".replace("__", "_")
+    config_name = args.config_name
+    ew_filename = f"{image_pair_name}_{config_name}_ew.tif".replace("__", "_")
     save_array_to_tiff(
         full_optical_flow[0].cpu().numpy().astype(np.float32),
         os.path.join(args.save_dir, ew_filename), transform=transform_meta_datas, crs=crs_meta_datas
-        )
-    
-    ns_filename = f"{image_pair_name}_microflow_ns.tif".replace("__", "_")  # replace __ in case the pre filename already contains the "_" char
+    )
+
+    ns_filename = f"{image_pair_name}_{config_name}_ns.tif".replace("__", "_")
+    # replace __ in case the pre filename already contains the "_" char
     save_array_to_tiff(
         full_optical_flow[1].cpu().numpy().astype(np.float32),
         os.path.join(args.save_dir, ns_filename), transform=transform_meta_datas, crs=crs_meta_datas
