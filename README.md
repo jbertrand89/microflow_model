@@ -140,7 +140,7 @@ python inference_real_examples.py \
 --dataset_dir <first_example_dir> \
 --save_dir <your_saving_directory> \
 --window_size 256 \
---window_overlap 64
+--stride 64
 ```
 
 and specify 
@@ -149,7 +149,7 @@ and specify
 - `dataset_dir`: the directory of your current example (for example, Real_examples/first_example containing 'xxx_pre.tif' and 'xxx_post.tif')
 - `save_dir`: directory where to save your estimates
 - `window_size`: sliding window size, recommended for 1024
-- `window_overlap`: overlap for the sliding window, (leading to a stride of window_size - 2 * window_overlap)
+- `stride`: stride for the sliding window
 
 Example: ```python inference_real_examples.py --config_name microflow --pretrained_model_filename pretrained_models/irseparated_GeoFlowNet_intermediatel1_0.8_sf012_e40.pt --save_dir results/ --dataset_dir Real_examples/example/ ```
 
