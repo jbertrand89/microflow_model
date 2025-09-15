@@ -24,14 +24,14 @@ def parse_arguments():
                         help='number of 2D iterations (alternating between rows and columns)') 
     parser.add_argument('--reg_threads', default=16, type=int, help='number of cpu threads') 
 
-    # raft parameters
+    # baseline parameters
     parser.add_argument('--raft_small', action='store_true', help='use the crop resize data augmentation')
     parser.add_argument('--raft_input_channel', default=3, type=int, help='max factor for resize')
     parser.add_argument('--raft_dropout', type=float, default=0.0)
 
     # loss and metrics parameters:
     parser.add_argument('--loss', default='raft', help='Loss used')
-    parser.add_argument('--gamma', type=float, default=0.8, help='gamma for intermediate l1 loss')
+    parser.add_argument('--gamma', type=float, default=0.85, help='gamma for intermediate l1 loss')
 
     # training parameters
     parser.add_argument('--weight_decay', '--wd', default=4e-4, type=float, help='weight decay')
@@ -79,7 +79,7 @@ def save_config(config_filename, args):
         "REPEAT_FIRST_ITERATION": args.repeat_first_iteration,
         "USE_BATCH_NORM": args.use_batch_norm,
         "LOSS": args.loss,
-        "GAMMA": args.gamma
+        "GAMMA": args.gamma,
     }
 
     regularization_parameters = {
@@ -146,5 +146,4 @@ if __name__ == "__main__":
     os.makedirs(os.path.dirname(args.config_filename), exist_ok=True)
     save_config(args.config_filename, args)
     print(f"saved config {args.config_filename}")
-
 

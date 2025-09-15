@@ -2,6 +2,7 @@ import torch
 from collections import OrderedDict
 from src.models.iterative_models.iterative_separated_weights import get_iterative_separated_weights_model
 from src.models.iterative_models.iterative_shared_weights import get_iterative_shared_weights_model
+from src.models.iterative_models.iterative_separated_weights_inverse import get_iterative_separated_weights_inverse_model
 from src.models.baselines.raft.raft import RAFT
 
 
@@ -47,6 +48,10 @@ def load_iterative_explicit_warping_model(args, device):
             device, backbone_name, False, args.max_iterations, filenames, trained_end2end=pretrained_end2end)
     elif iterative_name == "irseparated":
         model = get_iterative_separated_weights_model(
+            device, backbone_name, False, args.max_iterations, filenames, args=args,
+            trained_end2end=pretrained_end2end)
+    elif iterative_name == "irseparatedinverse":
+        model = get_iterative_separated_weights_inverse_model(
             device, backbone_name, False, args.max_iterations, filenames, args=args,
             trained_end2end=pretrained_end2end)
     else:
