@@ -3,8 +3,10 @@ from tqdm import tqdm
 from collections import defaultdict
 import torch
 import numpy as np
+import time
 from src.dataloaders.tiff_utils import save_array_to_tiff
 from src.models.model_utils.iterative_model_utils import compute_regularization
+import matplotlib.pyplot as plt
 
 
 def evaluate_training(args, device, model, val_loader=None, loss_function=None, metrics=None):
@@ -259,7 +261,7 @@ def evaluate_inference_from_estimates(
 
     if args.save_metrics:
         model_name = args.estimate_model_name
-        scaling_factor_name= "_".join(args.split_scaling_factors)
+        scaling_factor_name = "_".join(args.split_scaling_factors)
         regularization_name = f"_{args.penalty_function}_l{args.reg_lambda}_i{args.reg_iterations}" if args.regularization else ""
 
         metrics = compute_all_metrics(
@@ -305,46 +307,60 @@ def evaluate_inference_large_image(
 
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=args.amp, dtype=torch.float16):
-                optical_flow_predictions = model.forward(
+                optical_flow_predictions = model(
                     input_model,
                     ptv=ptv,
-                    args=args, 
-                    save=False
+                    args=args,
+                    save=False,
+                    test_mode=True
                 )
         last_iteration_prediction = optical_flow_predictions[-1]
 
         x_pos = batch_x_positions.item()
-        min_x = 0 if x_pos == 0 else x_pos + window_overlap
+        min_x = x_pos
         max_x = x_pos + window_size
         y_pos = batch_y_positions.item()
-        min_y = 0 if y_pos == 0 else y_pos + window_overlap
+        min_y = y_pos
         max_y = y_pos + window_size
 
-        full_optical_flow[:, min_y:max_y, min_x: max_x] += last_iteration_prediction[0, :, min(window_overlap, min_y):window_size, min(window_overlap, min_x):window_size]
+        # # with stride
+        full_optical_flow[:, min_y:max_y, min_x: max_x] += last_iteration_prediction[0]
         counts_image[:, min_y:max_y, min_x: max_x] += torch.ones((2, max_y - min_y, max_x - min_x), device=device)
 
-    # Because of window_overlap, some regions have multiple predictions, so we average them
-    full_optical_flow /= counts_image
+    flow_to_enumerate = [full_optical_flow]
 
-    if apply_regularization:
-        full_optical_flow = compute_regularization(full_optical_flow.unsqueeze(0), args, ptv)[0]
+    for i_of, of in enumerate(flow_to_enumerate):
+        # Because of window_overlap, some regions have multiple predictions, so we average them
+        of /= counts_image
+        _, h, w = of.shape
 
-    # Save the full images
-    os.makedirs(args.save_dir, exist_ok=True)
-    full_optical_flow[1] *= -1  # Qgis convention for the NS direction
+        t0 = time.time()
+        if apply_regularization:
+            of = compute_regularization(of.unsqueeze(0), args, ptv)[0]
+        t1 = time.time()
+        print(f"time regularization {t1 - t0}")
 
-    ew_filename = f"{image_pair_name}_microflow_ew.tif".replace("__", "_")
-    save_array_to_tiff(
-        full_optical_flow[0].cpu().numpy().astype(np.float32),
-        os.path.join(args.save_dir, ew_filename), transform=transform_meta_datas, crs=crs_meta_datas
-        )
-    
-    ns_filename = f"{image_pair_name}_microflow_ns.tif".replace("__", "_")  # replace __ in case the pre filename already contains the "_" char
-    save_array_to_tiff(
-        full_optical_flow[1].cpu().numpy().astype(np.float32),
-        os.path.join(args.save_dir, ns_filename), transform=transform_meta_datas, crs=crs_meta_datas
-        )
+        # Save the full images
+        print(f"args.save_dir {args.save_dir}")
+        os.makedirs(args.save_dir, exist_ok=True)
+        of[0] *= -1  # Qgis convention for the EW direction
+        of[1] *= -1  # Qgis convention for the NS direction
 
+        config_name = args.config_name
+        ew_filename = f"{image_pair_name}_{config_name}_ew_i{i_of}.tif".replace("__", "_")
+        save_array_to_tiff(
+            of[0].cpu().numpy().astype(np.float32),
+            os.path.join(args.save_dir, ew_filename), transform=transform_meta_datas, crs=crs_meta_datas
+            )
+
+        ns_filename = f"{image_pair_name}_{config_name}_ns_i{i_of}.tif".replace("__", "_")  # replace __ in case the pre filename already contains the "_" char
+        save_array_to_tiff(
+            of[1].cpu().numpy().astype(np.float32),
+            os.path.join(args.save_dir, ns_filename), transform=transform_meta_datas, crs=crs_meta_datas
+            )
+
+        print(f"ew_filename {os.path.join(args.save_dir, ew_filename)}")
+        print(f"ns_filename {os.path.join(args.save_dir, ns_filename)}")
 
 def update_full_image_error(metric, prediction, target, errors, index, val_dataset_count):
     """
@@ -423,7 +439,7 @@ def save_metrics(args, model_name, scaling_factor_name, regularization_name, met
 def get_frame_labels(frame_ids, scaling_factors, dataset_name, frame_names=None):
     if frame_names:
         frame_labels = ["_".join(frame_names[f].split("_")[1:]) for f in frame_ids]
-    elif dataset_name.lower() == "faultdeform":
+    elif dataset_name.lower().startswith("faultdeform"):
         frame_labels = [f"{f:06d}_{scaling_factors[ii]:01d}" for ii, f in enumerate(frame_ids)]
     else:
         frame_labels = [f"{f:06d}" for f in frame_ids]

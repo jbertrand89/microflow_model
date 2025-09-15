@@ -21,14 +21,14 @@ def get_train_transforms(image_size):
         RandomCrop(image_size),
         RandomHorizontalFlip(),
         RandomVerticalFlip(),
-        Normalization(),
+        NormalizationMinMax(),
     ])
 
 
 def get_inference_transforms(image_size):
     return Compose([
         CenterCrop(image_size),
-        Normalization()
+        NormalizationMinMax()
     ])
 
 
@@ -177,6 +177,28 @@ class Normalization(object):
                     mean = torch.mean(key_sample[image_id])
                     std = torch.std(key_sample[image_id])
                     normalized_array.append((key_sample[image_id] - mean) / std)
+
+                result_sample[key] = torch.stack(normalized_array, dim=0)
+            else:
+                result_sample[key] = sample[key]
+        result_sample['pre_post_image_no_normalization'] = sample['pre_post_image']  # copy not done in place
+        return result_sample
+
+
+class NormalizationMinMax(object):
+    """Normalizes image data in the sample by subtracting min and dividing by max - min."""
+
+    def __call__(self, sample):
+        result_sample = {}
+        for key in sample:
+            if "image" in key:
+                key_sample = sample[key]
+
+                normalized_array = []
+                for image_id in range(2):
+                    min = torch.min(key_sample[image_id])
+                    max = torch.max(key_sample[image_id])
+                    normalized_array.append((key_sample[image_id] - min) / (max - min))
 
                 result_sample[key] = torch.stack(normalized_array, dim=0)
             else:

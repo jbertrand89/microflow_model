@@ -92,7 +92,7 @@ class RealExampleLargeDataset(Dataset):
             x_positions.append(x)
             y_positions.append(y)
 
-        stride = self.window_size - 2 * self.window_overlap
+        stride = self.window_overlap
         _, h, w = images.shape
         patches, x_positions, y_positions = [], [], []
 

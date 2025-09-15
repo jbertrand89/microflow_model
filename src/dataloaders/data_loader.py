@@ -82,7 +82,7 @@ def get_real_examples_dataloader(args):
         top=0, 
         left=0, 
         window_size=args.window_size, 
-        window_overlap=args.window_overlap
+        window_overlap=args.stride
     )
     # the metadata are loaded outside of the dataloader because they are at a rasterio format, 
     # not compatible with tensors, numpy arrays, numbers, dicts or lists
