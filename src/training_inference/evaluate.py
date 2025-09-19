@@ -286,8 +286,8 @@ def evaluate_inference_large_image(
         ptv = None
 
     height, width, window_overlap, window_size, image_pair_name = loader.dataset.get_image_info()
-    full_optical_flow = torch.zeros((2, height, width), device=device)
-    counts_image = torch.zeros((2, height, width), device=device)
+    full_optical_flow = np.zeros((2, height, width))
+    counts_image = np.zeros((2, height, width))
 
     # For the large images, we disable the regularization for each patch and apply the regularization at the end
     apply_regularization = args.regularization
@@ -314,18 +314,20 @@ def evaluate_inference_large_image(
                     save=False,
                     test_mode=True
                 )
+
         last_iteration_prediction = optical_flow_predictions[-1]
 
-        x_pos = batch_x_positions.item()
-        min_x = x_pos
-        max_x = x_pos + window_size
-        y_pos = batch_y_positions.item()
-        min_y = y_pos
-        max_y = y_pos + window_size
+        for i_batch in range(last_iteration_prediction.shape[0]):
+            x_pos = batch_x_positions[i_batch].item()
+            min_x = x_pos
+            max_x = x_pos + window_size
+            y_pos = batch_y_positions[i_batch].item()
+            min_y = y_pos
+            max_y = y_pos + window_size
 
-        # # with stride
-        full_optical_flow[:, min_y:max_y, min_x: max_x] += last_iteration_prediction[0]
-        counts_image[:, min_y:max_y, min_x: max_x] += torch.ones((2, max_y - min_y, max_x - min_x), device=device)
+            # with stride
+            full_optical_flow[:, min_y:max_y, min_x: max_x] += last_iteration_prediction[i_batch].cpu().numpy()
+            counts_image[:, min_y:max_y, min_x: max_x] += 1
 
     flow_to_enumerate = [full_optical_flow]
 
@@ -349,18 +351,19 @@ def evaluate_inference_large_image(
         config_name = args.config_name
         ew_filename = f"{image_pair_name}_{config_name}_ew_i{i_of}.tif".replace("__", "_")
         save_array_to_tiff(
-            of[0].cpu().numpy().astype(np.float32),
+            of[0].astype(np.float32),
             os.path.join(args.save_dir, ew_filename), transform=transform_meta_datas, crs=crs_meta_datas
             )
 
         ns_filename = f"{image_pair_name}_{config_name}_ns_i{i_of}.tif".replace("__", "_")  # replace __ in case the pre filename already contains the "_" char
         save_array_to_tiff(
-            of[1].cpu().numpy().astype(np.float32),
+            of[1].astype(np.float32),
             os.path.join(args.save_dir, ns_filename), transform=transform_meta_datas, crs=crs_meta_datas
             )
 
         print(f"ew_filename {os.path.join(args.save_dir, ew_filename)}")
         print(f"ns_filename {os.path.join(args.save_dir, ns_filename)}")
+
 
 def update_full_image_error(metric, prediction, target, errors, index, val_dataset_count):
     """

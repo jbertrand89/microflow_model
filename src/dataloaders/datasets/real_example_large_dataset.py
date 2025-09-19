@@ -1,4 +1,3 @@
-import torch
 import torch.nn.parallel
 import torch.optim
 import torch.utils.data
@@ -6,12 +5,14 @@ from torch.utils.data import Dataset
 import numpy as np
 import os
 from src.dataloaders.tiff_utils import open_tiff, get_tiff_band, get_tiff_crs, get_tiff_transform
+import torch
 
 
 class RealExampleLargeDataset(Dataset):
 
     def __init__(
-        self, root_dir, transform=None, pre_template="pre.tif", post_template="post.tif", top=0, left=0, window_size=1024, window_overlap=64
+            self, root_dir, transform=None, pre_template="pre.tif", post_template="post.tif", top=0, left=0,
+            window_size=1024, window_overlap=64
     ):
         self.root_dir = root_dir  # contains all the input-pair folders
         self.transform = transform
@@ -29,8 +30,7 @@ class RealExampleLargeDataset(Dataset):
 
     def load_patches_in_memory(self):
         pre_filename, post_filename = self.get_filenames(self.root_dir)
-
-        pre_post = self.load_prepost_tensor(pre_filename, post_filename)
+        pre_post = self.load_prepost_array(pre_filename, post_filename)
 
         # Extract crs metadata
         pre_img = open_tiff(pre_filename)
@@ -64,13 +64,13 @@ class RealExampleLargeDataset(Dataset):
         image = open_tiff(filename)
         array = get_tiff_band(image, 1)
         array[np.isnan(array)] = 0
-        return torch.tensor(array)
+        return array
 
-    def load_prepost_tensor(self, pre_filename, post_filename):
+    def load_prepost(self, pre_filename, post_filename):
         """ Loads prepost tensor """
-        pre_tensor = self.load_and_fill(pre_filename)
-        post_tensor = self.load_and_fill(post_filename)
-        return torch.stack([pre_tensor, post_tensor])
+        pre_array = self.load_and_fill(pre_filename)
+        post_array = self.load_and_fill(post_filename)
+        return np.array([pre_array, post_array])
 
     def __len__(self):
         return len(self.pre_posts)
@@ -86,18 +86,18 @@ class RealExampleLargeDataset(Dataset):
     def extract_patches(self, images):
         def update_patches(images, x, y, window_size, patches, x_positions, y_positions):
             patch = images[:, y: y + window_size, x: x + window_size]
-            if torch.sum(torch.abs(patch)) == 0:  # for regions where there is no data
-                return
+            # if torch.sum(torch.abs(patch)) == 0:  # for regions where there is no data
+            #     return
             patches.append(patch)
             x_positions.append(x)
             y_positions.append(y)
 
-        stride = self.window_overlap
         _, h, w = images.shape
         patches, x_positions, y_positions = [], [], []
 
-        for y in range(0, h, stride):
-            for x in range(0, w, stride):
+        stride = self.window_overlap
+        for y in range(0, h - self.window_size + stride, stride):
+            for x in range(0, w - self.window_size + stride, stride):
                 # Handling edge cases
                 if y + self.window_size > h:
                     y = h - self.window_size
@@ -109,7 +109,7 @@ class RealExampleLargeDataset(Dataset):
 
     def __getitem__(self, idx):
         sample = {
-            'pre_post_image': torch.tensor(self.pre_posts[idx]),
+            'pre_post_image': torch.tensor(self.pre_posts[idx].astype(np.float32)),
         }
 
         if self.transform is not None:
