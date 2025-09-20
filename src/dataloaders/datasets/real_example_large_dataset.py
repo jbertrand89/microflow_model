@@ -30,7 +30,7 @@ class RealExampleLargeDataset(Dataset):
 
     def load_patches_in_memory(self):
         pre_filename, post_filename = self.get_filenames(self.root_dir)
-        pre_post = self.load_prepost_array(pre_filename, post_filename)
+        pre_post = self.load_prepost(pre_filename, post_filename)
 
         # Extract crs metadata
         pre_img = open_tiff(pre_filename)
