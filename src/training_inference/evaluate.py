@@ -293,11 +293,17 @@ def evaluate_inference_large_image(
     apply_regularization = args.regularization
     args.regularization = False
 
+    t0 = time.time()
+    count = 0
     for _, batchv in enumerate(tqdm(loader)):
         batch_input = batchv['pre_post_image'].to(device, non_blocking=args.non_blocking)
         batch_images_no_normalization = batchv['pre_post_image_no_normalization'].to(device, non_blocking=args.non_blocking)
         batch_x_positions = batchv['x_position']
         batch_y_positions = batchv['y_position']
+
+        if torch.sum(torch.abs(batch_input)) == 0:  # for regions where there is no data
+            count += 1
+            continue
 
         if args.model_name.lower() == "raft":
             input_model = batch_input
@@ -312,7 +318,7 @@ def evaluate_inference_large_image(
                     ptv=ptv,
                     args=args,
                     save=False,
-                    test_mode=True
+                    test_mode=False
                 )
 
         last_iteration_prediction = optical_flow_predictions[-1]
@@ -328,6 +334,9 @@ def evaluate_inference_large_image(
             # with stride
             full_optical_flow[:, min_y:max_y, min_x: max_x] += last_iteration_prediction[i_batch].cpu().numpy()
             counts_image[:, min_y:max_y, min_x: max_x] += 1
+    t1 = time.time()
+    print(f"load data {t1 - t0} count no data={count}")
+    # raise Exception("j")
 
     flow_to_enumerate = [full_optical_flow]
 
@@ -338,15 +347,25 @@ def evaluate_inference_large_image(
 
         t0 = time.time()
         if apply_regularization:
-            of = compute_regularization(of.unsqueeze(0), args, ptv)[0]
+            chunk_size = 10000
+            _, h, w = of.shape
+            of[np.isnan(of)] = 0
+            of_gpu = torch.tensor(of[None, :])
+
+            for i_h in range(h // chunk_size + 1):
+                for i_w in range(w // chunk_size + 1):
+                    end_h = h + 1 if (i_h + 1) * chunk_size > h else (i_h + 1) * chunk_size
+                    end_w = w + 1 if (i_w + 1) * chunk_size > w else (i_w + 1) * chunk_size
+                    of[:, i_h * chunk_size: end_h, i_w * chunk_size: end_w] = compute_regularization(
+                        of_gpu[:, :, i_h * chunk_size: end_h, i_w * chunk_size: end_w], args, ptv)[0].cpu()
         t1 = time.time()
         print(f"time regularization {t1 - t0}")
 
         # Save the full images
         print(f"args.save_dir {args.save_dir}")
         os.makedirs(args.save_dir, exist_ok=True)
-        of[0] *= -1  # Qgis convention for the EW direction
-        of[1] *= -1  # Qgis convention for the NS direction
+        of[0] = of[0] * (-1 / 7) - 0.086 # Qgis convention for the EW direction
+        of[1] = of[1] * (-1 / 7) + 0.087  # Qgis convention for the NS direction
 
         config_name = args.config_name
         ew_filename = f"{image_pair_name}_{config_name}_ew_i{i_of}.tif".replace("__", "_")

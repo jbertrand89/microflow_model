@@ -4,7 +4,6 @@ import torch.utils.data
 from torch.utils.data import Dataset
 import numpy as np
 import os
-from src.dataloaders.tiff_utils import open_tiff, get_tiff_band, get_tiff_crs, get_tiff_transform
 import torch
 import rasterio as rio
 from rasterio.windows import Window
@@ -36,6 +35,7 @@ class RealExampleLargeDataset(Dataset):
             self.height = pre_raster.height
             self.crs_info = pre_raster.crs
             self.transform_info = pre_raster.transform
+
 
     def get_filenames(self, example_dir):
         filenames = os.listdir(example_dir)
@@ -80,11 +80,11 @@ class RealExampleLargeDataset(Dataset):
             window_post = post_raster.read(1, window=window, boundless=True, fill_value=0).astype(np.float32)
 
         # Convert to tensors
-        window_pre = torch.from_numpy(window_pre)
-        window_post = torch.from_numpy(window_post)
+        window_pre_torch = torch.from_numpy(window_pre)
+        window_post_torch = torch.from_numpy(window_post)
 
         sample = {
-            'pre_post_image': torch.stack([window_pre, window_post]),
+            'pre_post_image': torch.stack([window_pre_torch, window_post_torch]),
         }
 
         if self.transform is not None:

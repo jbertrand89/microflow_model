@@ -2,7 +2,6 @@ import argparse
 import torch
 import numpy as np
 import os
-import time
 import random
 
 from src.models.model_loader import load_model
@@ -55,26 +54,20 @@ def run_inference(args):
     # Define device
     device = torch.device('cuda')
     
-    print(args)
-    
     # Load models
     optical_flow_model = load_model(args, device)
 
     # Get dataloaders
     loader, crs_meta_datas, transform_meta_datas = get_real_examples_dataloader(args)
 
-    t_start = time.time()   
     evaluate_inference_large_image(
         args=args,
         device=device,
         model=optical_flow_model,
-        loader=loader,  
+        loader=loader,
         crs_meta_datas=crs_meta_datas,
         transform_meta_datas=transform_meta_datas,
         )
-    t_end = time.time()
-
-    print(f"total time {t_end - t_start}")
 
 
 if __name__ == '__main__':

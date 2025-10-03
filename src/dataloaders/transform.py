@@ -196,9 +196,10 @@ class NormalizationMinMax(object):
 
                 normalized_array = []
                 for image_id in range(2):
-                    min = torch.min(key_sample[image_id])
-                    max = torch.max(key_sample[image_id])
-                    normalized_array.append((key_sample[image_id] - min) / (max - min))
+                    mini = torch.min(key_sample[image_id])
+                    maxi = torch.max(key_sample[image_id])
+                    denominator = maxi - mini if (maxi - mini) != 0 else 1
+                    normalized_array.append((key_sample[image_id] - mini) / denominator)
 
                 result_sample[key] = torch.stack(normalized_array, dim=0)
             else:
