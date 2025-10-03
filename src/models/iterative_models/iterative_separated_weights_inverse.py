@@ -38,9 +38,11 @@ class IterativeSeparatedWeightsInverse(nn.Module):
         b, _, h, w = x.shape
 
         image2 = x[:, 1].view(b, 1, h, w)
+        image2 = image2.contiguous()
+        x[:, 0] = x[:, 0].contiguous()
 
-        iteration_inputs, iteration_sum_optical_flows, noisy_iteration_sum_optical_flows = [], [], []
-        iteration_optical_flows, iteration_warped_images, iteration_warped_normalized_images = [], [], []
+        iteration_inputs, iteration_sum_optical_flows = [], []
+        iteration_optical_flows, iteration_warped_normalized_images = [], []
 
         for iteration in range(self.max_iterations):
             # inputs for the iterations
@@ -58,14 +60,11 @@ class IterativeSeparatedWeightsInverse(nn.Module):
                 iteration_sum_optical_flows[iteration - 1] = iteration_sum_optical_flows[iteration - 1].detach()
                 iteration_sum_optical_flows.append(iteration_sum_optical_flows[iteration - 1] + iteration_optical_flows[iteration])
 
-            interpolated_flow = torch.nn.functional.interpolate(
-                iteration_sum_optical_flows[iteration], (h, w), mode='bilinear', align_corners=False)
-
             iteration_warped_normalized_images.append(
                 warp_image_torch(
                     image2,
-                    interpolated_flow
-                ))
+                    iteration_sum_optical_flows[iteration]
+                ).contiguous())
 
         if args.regularization:
             iteration_sum_optical_flows[-1] = compute_regularization(iteration_sum_optical_flows[-1], args, ptv)
