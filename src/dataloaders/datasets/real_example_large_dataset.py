@@ -36,7 +36,6 @@ class RealExampleLargeDataset(Dataset):
             self.crs_info = pre_raster.crs
             self.transform_info = pre_raster.transform
 
-
     def get_filenames(self, example_dir):
         filenames = os.listdir(example_dir)
         pre_filename, post_filename = None, None
@@ -77,7 +76,10 @@ class RealExampleLargeDataset(Dataset):
             window_pre = pre_raster.read(1, window=window, boundless=True, fill_value=0).astype(np.float32)
 
         with rio.open(self.post_filename) as post_raster:
-            window_post = post_raster.read(1, window=window, boundless=True, fill_value=0).astype(np.float32)
+            window_post = post_raster.read(1, window=window, boundless=True).astype(np.float32)
+            mask = np.isnan(window_post)
+            window_post[mask] = 0
+            mask = mask | (window_post==0)
 
         # Convert to tensors
         window_pre_torch = torch.from_numpy(window_pre)
@@ -93,5 +95,5 @@ class RealExampleLargeDataset(Dataset):
         sample['frame_id'] = torch.tensor(idx)
         sample['x_position'] = left
         sample['y_position'] = top
-
+        sample['nan_mask'] = torch.from_numpy(mask)
         return sample

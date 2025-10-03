@@ -300,6 +300,7 @@ def evaluate_inference_large_image(
         batch_images_no_normalization = batchv['pre_post_image_no_normalization'].to(device, non_blocking=args.non_blocking)
         batch_x_positions = batchv['x_position']
         batch_y_positions = batchv['y_position']
+        nan_mask = batchv['nan_mask'].unsqueeze(1).expand_as(batch_input)
 
         if torch.sum(torch.abs(batch_input)) == 0:  # for regions where there is no data
             count += 1
@@ -321,7 +322,8 @@ def evaluate_inference_large_image(
                     test_mode=False
                 )
 
-        last_iteration_prediction = optical_flow_predictions[-1]
+        last_iteration_prediction = optical_flow_predictions[-1].cpu().numpy()
+        last_iteration_prediction[nan_mask] = np.nan
 
         for i_batch in range(last_iteration_prediction.shape[0]):
             x_pos = batch_x_positions[i_batch].item()
@@ -332,11 +334,15 @@ def evaluate_inference_large_image(
             max_y = y_pos + window_size
 
             # with stride
-            full_optical_flow[:, min_y:max_y, min_x: max_x] += last_iteration_prediction[i_batch].cpu().numpy()
+            full_optical_flow[:, min_y:max_y, min_x: max_x] += last_iteration_prediction[i_batch]
             counts_image[:, min_y:max_y, min_x: max_x] += 1
+
     t1 = time.time()
     print(f"load data {t1 - t0} count no data={count}")
-    # raise Exception("j")
+
+    mask = np.isnan(full_optical_flow) | (counts_image==0)
+    full_optical_flow[mask] = np.nan
+    counts_image[counts_image==0] = 1  # will be divided by counts_image
 
     flow_to_enumerate = [full_optical_flow]
 
@@ -364,8 +370,8 @@ def evaluate_inference_large_image(
         # Save the full images
         print(f"args.save_dir {args.save_dir}")
         os.makedirs(args.save_dir, exist_ok=True)
-        of[0] = of[0] * (-1 / 7) - 0.086 # Qgis convention for the EW direction
-        of[1] = of[1] * (-1 / 7) + 0.087  # Qgis convention for the NS direction
+        # of[0] = of[0] * (-1 / 7) - 0.086 # Qgis convention for the EW direction
+        # of[1] = of[1] * (-1 / 7) + 0.087  # Qgis convention for the NS direction
 
         config_name = args.config_name
         ew_filename = f"{image_pair_name}_{config_name}_ew_i{i_of}.tif".replace("__", "_")
