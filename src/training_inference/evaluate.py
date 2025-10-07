@@ -370,8 +370,7 @@ def evaluate_inference_large_image(
         # Save the full images
         print(f"args.save_dir {args.save_dir}")
         os.makedirs(args.save_dir, exist_ok=True)
-        # of[0] = of[0] * (-1 / 7) - 0.086 # Qgis convention for the EW direction
-        # of[1] = of[1] * (-1 / 7) + 0.087  # Qgis convention for the NS direction
+        of[0] = of[0] * -1  # Qgis convention for the EW direction
 
         config_name = args.config_name
         ew_filename = f"{image_pair_name}_{config_name}_ew_i{i_of}.tif".replace("__", "_")

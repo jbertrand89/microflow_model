@@ -52,8 +52,10 @@ def reverse_flow(flow_field, max_iter=2):
 
 
 def get_inverse_flow(predicted_flow):
+    """ With Qgis convention"""
     flow = predicted_flow.clone()
-    flow[:, 0] *= -1
-    return reverse_flow(flow, max_iter=2)
+    inverse_flow = reverse_flow(flow, max_iter=2)
+    inverse_flow[:, 0] *= -1  # Qgis convention
+    return inverse_flow
 
 
